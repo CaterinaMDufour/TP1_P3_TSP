@@ -92,7 +92,11 @@ class HillClimbing(LocalSearch):
 
 
 class HillClimbingReset(LocalSearch):
-    """Algoritmo de ascension de colinas con reinicio aleatorio."""
+    """
+    El algoritmo de Ascensión de Colinas con reinicio aleatorio realiza varias iteraciones. 
+    Cuando alcanza un máximo local, reinicia desde un estado inicial aleatorio y retorna
+    el mejor estado encontrado.
+    """
     def solve(self, problem: TSP):
         """Resuelve un problema de optimizacion con ascension de colinas.
 
@@ -159,6 +163,77 @@ class HillClimbingReset(LocalSearch):
             return
 
 class Tabu(LocalSearch):
-    """Algoritmo de busqueda tabu."""
+    """
+    Algoritmo de búsqueda tabú.
+    Utiliza una lista tabú para mantener un registro de los movimientos previamente realizados
+    y evita quedar atrapado en ciclos o en óptimos locales utilizando estrategias.
 
-    # COMPLETAR
+    El criterio de parada que se utiliza es el de iteraciones sin mejora en el valor objetivo.
+    """
+
+    def solve(self, problem: TSP):
+        """
+        Resuelve un problema de optimización con búsqueda tabú.
+
+        Argumentos:
+        ==========
+        problem: TSP
+        """
+        # Inicio del reloj
+        start = time()
+
+        # Arrancamos del estado inicial
+        actual = problem.init
+        value = problem.obj_val(problem.init)
+        mejor = actual
+        lista_tabu = {}
+        iteraciones_sin_mejora = 0
+        self.niters = 0
+
+        # Parámetros del algoritmo
+        max_iteraciones_sin_mejora = 70
+        max_tabu_tam = 10
+
+        while iteraciones_sin_mejora < max_iteraciones_sin_mejora:
+            # Determinar las acciones que se pueden aplicar
+            # y las diferencias en valor objetivo que resultan
+            diff = problem.val_diff(actual)
+
+            # Buscar las acciones que generan el mayor incremento de valor obj
+            max_acts = [act for act, val in diff.items() if val == max(diff.values())]
+
+            # Elegir una acción aleatoria
+            act = choice(max_acts)
+
+            # Retornar si estamos en un óptimo local 
+            # (diferencia de valor objetivo no positiva)
+            if diff[act] <= 0:
+                iteraciones_sin_mejora += 1
+                continue
+            else:
+                vecino = problem.result(actual, act)
+                if vecino not in lista_tabu:
+                    # Actualizar la mejor solución si el vecino es mejor
+                    if problem.obj_val(vecino) > problem.obj_val(mejor):
+                        mejor = vecino
+                        value = problem.obj_val(vecino)
+
+                    # Actualizar lista tabú y reiniciar contador
+                    lista_tabu[vecino] = [actual, value, self.time, self.niters]
+                    iteraciones_sin_mejora = 0
+
+                    # Gestión de la lista tabú (eliminando el elemento más antiguo si se excede el tamaño máximo)
+                    if len(lista_tabu) >= max_tabu_tam:
+                        lista_tabu.popitem(last=False)
+
+            # Sino, nos movemos al sucesor
+            actual = vecino
+            value = value + diff[act]
+            self.niters += 1
+
+        # Almacenar la información correspondiente
+        self.Time = self.time
+        self.Tour = mejor
+        self.Value = problem.obj_val(mejor)
+        self.Niters = self.niters
+        return
