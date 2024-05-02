@@ -186,7 +186,7 @@ class Tabu(LocalSearch):
         actual = problem.init
         value = problem.obj_val(problem.init)
         mejor = actual
-        lista_tabu = {}
+        lista_tabu = set()
         iteraciones_sin_mejora = 0
         self.niters = 0
 
@@ -212,28 +212,32 @@ class Tabu(LocalSearch):
                 continue
             else:
                 vecino = problem.result(actual, act)
-                if vecino not in lista_tabu:
+                vecino_tupla = tuple(vecino)
+                if vecino_tupla not in lista_tabu:
                     # Actualizar la mejor solución si el vecino es mejor
                     if problem.obj_val(vecino) > problem.obj_val(mejor):
                         mejor = vecino
                         value = problem.obj_val(vecino)
 
                     # Actualizar lista tabú y reiniciar contador
-                    lista_tabu[vecino] = [actual, value, self.time, self.niters]
+                    lista_tabu.add(vecino_tupla)
                     iteraciones_sin_mejora = 0
 
                     # Gestión de la lista tabú (eliminando el elemento más antiguo si se excede el tamaño máximo)
                     if len(lista_tabu) >= max_tabu_tam:
-                        lista_tabu.popitem(last=False)
+                        lista_tabu.pop()
 
             # Sino, nos movemos al sucesor
             actual = vecino
             value = value + diff[act]
             self.niters += 1
 
+        # Fin del reloj
+        end = time()
+        
         # Almacenar la información correspondiente
-        self.Time = self.time
-        self.Tour = mejor
-        self.Value = problem.obj_val(mejor)
-        self.Niters = self.niters
+        self.time = end - start
+        self.tour = mejor
+        self.value = problem.obj_val(mejor)
+        self.niters = self.niters
         return
