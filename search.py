@@ -57,14 +57,14 @@ class HillClimbing(LocalSearch):
         start = time()
 
         # Arrancamos del estado inicial
-        actual = problem.init
+        current = problem.init
         value = problem.obj_val(problem.init)
 
         while True:
 
             # Determinar las acciones que se pueden aplicar
             # y las diferencias en valor objetivo que resultan
-            diff = problem.val_diff(actual)
+            diff = problem.val_diff(current)
 
             # Buscar las acciones que generan el mayor incremento de valor obj
             max_acts = [act for act, val in diff.items() if val ==
@@ -77,7 +77,7 @@ class HillClimbing(LocalSearch):
             # (diferencia de valor objetivo no positiva)
             if diff[act] <= 0:
 
-                self.tour = actual
+                self.tour = current
                 self.value = value
                 end = time()
                 self.time = end-start
@@ -86,7 +86,7 @@ class HillClimbing(LocalSearch):
             # Sino, nos movemos al sucesor
             else:
 
-                actual = problem.result(actual, act)
+                current = problem.result(current, act)
                 value = value + diff[act]
                 self.niters += 1
 
@@ -109,26 +109,27 @@ class HillClimbingReset(LocalSearch):
         start = time()
 
         # Arrancamos del estado inicial
-        actual = problem.init
+        current = problem.init
         value = problem.obj_val(problem.init)
-        iteracionesRandom = 0
-        mejorValor = []
-        valoresIteraciones = {}
-        while iteracionesRandom < 10:
-            if(iteracionesRandom!=0):
+        bestValue = []
+        iteration_values = {}
+
+        #
+        for random_iterations in range(10):
+            if(random_iterations!=0):
                 
                 problem.init = problem.random_reset()
                 start = time()
                 self.niters = 0
-                actual = problem.init
+                current = problem.init
                 value = problem.obj_val(problem.init)
-            iteracionesRandom += 1
+            
 
             while True:
 
                 # Determinar las acciones que se pueden aplicar
                 # y las diferencias en valor objetivo que resultan
-                diff = problem.val_diff(actual)
+                diff = problem.val_diff(current)
 
                 # Buscar las acciones que generan el mayor incremento de valor obj
                 max_acts = [act for act, val in diff.items() if val ==
@@ -141,26 +142,27 @@ class HillClimbingReset(LocalSearch):
                 # (diferencia de valor objetivo no positiva)
                 if diff[act] <= 0:
 
-                    self.tour = actual
+                    self.tour = current
                     self.value = value
                     end = time()
                     self.time = end-start
-                    mejorValor.append(value)
-                    valoresIteraciones[value] = [actual,value,self.time,self.niters]
+                    bestValue.append(value)
+                    iteration_values[value] = [current,value,self.time,self.niters]
                     break
 
                 # Sino, nos movemos al sucesor
                 else:
 
-                    actual = problem.result(actual, act)
+                    current = problem.result(current, act)
                     value = value + diff[act]
                     self.niters += 1
-        if (iteracionesRandom >= 9):
-            self.tour = valoresIteraciones[max(mejorValor)][0]
-            self.value = valoresIteraciones[max(mejorValor)][1]
-            self.time = valoresIteraciones[max(mejorValor)][2]
-            self.niters = valoresIteraciones[max(mejorValor)][3]
-            return
+        
+        #Guarda las variables del mejor recorrido 
+        self.tour = iteration_values[max(bestValue)][0]
+        self.value = iteration_values[max(bestValue)][1]
+        self.time = iteration_values[max(bestValue)][2]
+        self.niters = iteration_values[max(bestValue)][3]
+        return
 
 class Tabu(LocalSearch):
     """
@@ -183,21 +185,21 @@ class Tabu(LocalSearch):
         start = time()
 
         # Arrancamos del estado inicial
-        actual = problem.init
+        current = problem.init
         value = problem.obj_val(problem.init)
-        mejor = actual
-        lista_tabu = set()
-        iteraciones_sin_mejora = 0
+        best = current
+        list_tabu = set()
+        iterations_without_improvement = 0
         self.niters = 0
 
         # Parámetros del algoritmo
-        max_iteraciones_sin_mejora = 70
-        max_tabu_tam = 10
+        max_iterations_without_improvement = 70
+        max_tabu_size = 10
 
-        while iteraciones_sin_mejora < max_iteraciones_sin_mejora:
+        while iterations_without_improvement < max_iterations_without_improvement:
             # Determinar las acciones que se pueden aplicar
             # y las diferencias en valor objetivo que resultan
-            diff = problem.val_diff(actual)
+            diff = problem.val_diff(current)
 
             # Buscar las acciones que generan el mayor incremento de valor obj
             max_acts = [act for act, val in diff.items() if val == max(diff.values())]
@@ -208,27 +210,27 @@ class Tabu(LocalSearch):
             # Retornar si estamos en un óptimo local 
             # (diferencia de valor objetivo no positiva)
             if diff[act] <= 0:
-                iteraciones_sin_mejora += 1
+                iterations_without_improvement += 1
                 continue
             else:
-                vecino = problem.result(actual, act)
-                vecino_tupla = tuple(vecino)
-                if vecino_tupla not in lista_tabu:
+                neighbour = problem.result(current, act)
+                neighbour_tuple = tuple(neighbour)
+                if neighbour_tuple not in list_tabu:
                     # Actualizar la mejor solución si el vecino es mejor
-                    if problem.obj_val(vecino) > problem.obj_val(mejor):
-                        mejor = vecino
-                        value = problem.obj_val(vecino)
+                    if problem.obj_val(neighbour) > problem.obj_val(best):
+                        best = neighbour
+                        value = problem.obj_val(neighbour)
 
                     # Actualizar lista tabú y reiniciar contador
-                    lista_tabu.add(vecino_tupla)
-                    iteraciones_sin_mejora = 0
+                    list_tabu.add(neighbour_tuple)
+                    iterations_without_improvement = 0
 
                     # Gestión de la lista tabú (eliminando el elemento más antiguo si se excede el tamaño máximo)
-                    if len(lista_tabu) >= max_tabu_tam:
-                        lista_tabu.pop()
+                    if len(list_tabu) >= max_tabu_size:
+                        list_tabu.pop()
 
             # Sino, nos movemos al sucesor
-            actual = vecino
+            current = neighbour
             value = value + diff[act]
             self.niters += 1
 
@@ -237,7 +239,7 @@ class Tabu(LocalSearch):
         
         # Almacenar la información correspondiente
         self.time = end - start
-        self.tour = mejor
-        self.value = problem.obj_val(mejor)
+        self.tour = best
+        self.value = problem.obj_val(best)
         self.niters = self.niters
         return
